@@ -338,14 +338,6 @@ void wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 	}
 
 
-	if(timeout_option(&rwq, params) == -1)
-	{
-		sendACK(sockID, sockInfo, 0);
-	}
-	else
-	{
-		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
-	}
 
 	FILE *pFile = NULL;
 	if((pFile = open_file(rwq.filename, "wb", params)) == NULL)
@@ -370,6 +362,14 @@ void wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 		return;
 	}
 
+	if(timeout_option(&rwq, params) == -1)
+	{
+		sendACK(sockID, sockInfo, 0);
+	}
+	else
+	{
+		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
+	}
 
 	int sz = 0;
 	int t_out = 0;

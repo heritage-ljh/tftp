@@ -28,14 +28,14 @@
 	#define RFC1350_OP_ACK		4	/* Acknowledgment */
 	#define RFC1350_OP_ERROR	5	/* Error          */
 
-	#define RFC1350_ERR_NOTDEF	0	/* Not defined, see err. messsage   */
+	#define RFC1350_ERR_NOTDEF		0	/* Not defined, see err. messsage   */
 	#define RFC1350_ERR_FNOTFOUND	1	/* File not found                   */
-	#define RFC1350_ERR_ACCESS	2	/* Access violation                 */
+	#define RFC1350_ERR_ACCESS		2	/* Access violation                 */
 	#define RFC1350_ERR_DISKFULL	3	/* Disk full or allocation exceeded */
 	#define RFC1350_ERR_ILEGALOP	4	/* Illegal TFTP operation           */
-	#define RFC1350_ERR_UKNOWID	5	/* Unknown transfer ID              */
-	#define RFC1350_ERR_FEXISTS	6	/* File already exists              */
-	#define RFC1350_ERR_NOUSER	7	/* No such user                     */
+	#define RFC1350_ERR_UKNOWID		5	/* Unknown transfer ID              */
+	#define RFC1350_ERR_FEXISTS		6	/* File already exists              */
+	#define RFC1350_ERR_NOUSER		7	/* No such user                     */
 
 	#define RFC1350_PORT		69	/* Transport TFTP port  */
 	#define RFC1350_BLOCKSIZE	512	/* Max. data block size */
