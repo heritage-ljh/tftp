@@ -325,21 +325,35 @@ void wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 	tftp_data_hdr data;
 	
 	rwq_deserialize(&rwq, buffer);
-	if(timeout_option(&rwq, params, sockID, sockInfo) == 0)
+	if(mode_transfer(rwq.mode, "octet", params) == -1)
+	{
+		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_NOTDEF, "Set transfer mode to octet");
+		return;
+	}
+
+	if(file_exists(rwq.filename) == 1)
+	{
+		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_FEXISTS, "File exists");
+		return;
+	}
+
+
+	if(timeout_option(&rwq, params) == -1)
 	{
 		sendACK(sockID, sockInfo, 0);
 	}
-
-	if(mode_transfer(rwq.mode, "octet", sockID, sockInfo, params) == -1)
+	else
 	{
-		return;
+		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
 	}
 
 	FILE *pFile = NULL;
-	if((pFile = open_file(rwq.filename, "wb", sockID, sockInfo, params)) == NULL)
+	if((pFile = open_file(rwq.filename, "wb", params)) == NULL)
 	{
+		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_FNOTFOUND, "\0");
 		return;
 	}
+
 
 	int sz = 0;
 	int t_out = 0;
@@ -388,16 +402,28 @@ void rwqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 	bzero(&rwq, sizeof(tftp_rwq_hdr));
 
 	rwq_deserialize(&rwq, buffer);
-	timeout_option(&rwq, params, sockID, sockInfo);
 
-	if(mode_transfer(rwq.mode, "octet", sockID, sockInfo, params) == -1)
+	if(mode_transfer(rwq.mode, "octet", params) == -1)
 	{
+		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_NOTDEF, "Set transfer mode to octet");
 		return;
 	}
 
-	FILE *pFile = NULL;
-	if((pFile = open_file(rwq.filename, "rb", sockID, sockInfo, params)) == NULL)
+	if(file_exists(rwq.filename) == 1)
 	{
+		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_FEXISTS, "\0");
+		return;
+	}
+
+	if(timeout_option(&rwq, params) == 1)
+	{
+		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
+	}
+
+	FILE *pFile = NULL;
+	if((pFile = open_file(rwq.filename, "rb", params)) == NULL)
+	{
+		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_FNOTFOUND, "\0");
 		return;
 	}
 
@@ -441,15 +467,14 @@ void rwqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 
 //================
 
-int timeout_option(tftp_rwq_hdr *rwq, struct PARAMS *params, int sockID, struct sockaddr_in sockInfo)
+int timeout_option(tftp_rwq_hdr *rwq, struct PARAMS *params)
 {
-	int ok = 0;
+	int ok = -1;
 
 	if(!strcmp(rwq->tout, "timeout") && atoi(rwq->toutv) > 0 && atoi(rwq->toutv) < 256)
 	{
 		ok = 1;
 		params->rexmt = atoi(rwq->toutv);
-		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
 
 		if(params->verbose)
 		{
@@ -474,7 +499,7 @@ int select_func(int sockID, int time)
 	return(s);
 }
 
-int mode_transfer(char *modeFound, char *modeCorrect, int sockID, struct sockaddr_in sockInfo, struct PARAMS *params)
+int mode_transfer(char *modeFound, char *modeCorrect, struct PARAMS *params)
 {
 	int ok = 1;
 
@@ -485,14 +510,13 @@ int mode_transfer(char *modeFound, char *modeCorrect, int sockID, struct sockadd
 			printf("ERROR Client transfer mode is set to: %s\n", modeFound);
 		}
 
-		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_ILEGALOP, "Set transfer mode to octet");
 		ok = -1;
 	}
 
 	return(ok);
 }
 
-FILE *open_file(char *fName, char *mode, int sockID, struct sockaddr_in sockInfo, struct  PARAMS *params)
+FILE *open_file(char *fName, char *mode, struct  PARAMS *params)
 {
 	FILE *pFile = NULL;
 	
@@ -502,11 +526,23 @@ FILE *open_file(char *fName, char *mode, int sockID, struct sockaddr_in sockInfo
 		{
 			printf("Error opening file: %s\n", fName);
 		}
-
-		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_FNOTFOUND, "\0");
 	}
 
 	return(pFile);
+}
+
+int file_exists(char *fName)
+{
+	FILE *pFile = NULL;
+	int OK = -1;
+
+	if((pFile = fopen(fName, "r")) != NULL)
+	{
+		fclose(pFile);
+		OK = 1;
+	}
+
+	return(OK);
 }
 
 int get_data(tftp_data_hdr *data, int sockID, struct sockaddr_in sockInfo, struct PARAMS *params)

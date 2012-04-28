@@ -83,12 +83,13 @@
 
 	//====================
 
-	int 	mode_transfer(char *modeFound, char *modeCorrect, int sockID, struct sockaddr_in sockInfo, struct PARAMS *params);
-	int 	timeout_option(tftp_rwq_hdr *rwq, struct PARAMS *params, int sockID, struct sockaddr_in sockInfo);
+	int 	mode_transfer(char *modeFound, char *modeCorrect, struct PARAMS *params);
+	int 	timeout_option(tftp_rwq_hdr *rwq, struct PARAMS *params);
 	int		get_data(tftp_data_hdr *data, int sockID, struct sockaddr_in sockInfo, struct PARAMS *param);
 	int 	get_ack(tftp_ack_hdr *ack, int sockID, struct sockaddr_in sockInfo, struct PARAMS *params);
 	int 	select_func(int sockID, int time);
 
-	FILE 	*open_file(char *fName, char *mode, int sockID, struct sockaddr_in sockInfo, struct PARAMS *params);
+	FILE 	*open_file(char *fName, char *mode, struct PARAMS *params);
+	int 	file_exists(char *fName);
 
 #endif
