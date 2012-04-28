@@ -350,7 +350,23 @@ void wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 	FILE *pFile = NULL;
 	if((pFile = open_file(rwq.filename, "wb", params)) == NULL)
 	{
-		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_FNOTFOUND, "\0");
+		switch(errno)
+		{
+			case EACCES:
+			{
+				sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_ACCESS, "Permission denied");
+			}break;
+
+			case ENOMEM:
+			{
+				sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_DISKFULL, "Not enough space");
+			}break;
+
+			default:
+			{
+				sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_NOTDEF, strerror(errno));
+			}break;
+		}
 		return;
 	}
 
