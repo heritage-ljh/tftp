@@ -256,10 +256,10 @@ int sendACKOpt(int sockID, struct sockaddr_in sockInfo, char *opt, int value)
 {
 	int sz = 0;
 	char buffer[MAX_BUFFER];
-	char vchar[10];
+	char vchar[4];
 	
 	bzero(buffer, MAX_BUFFER);
-	bzero(vchar, 10);
+	bzero(vchar, 4);
 	
 	stshort(6, buffer + sz);
 	sz += SHORT_SIZE;
@@ -276,10 +276,6 @@ int sendACKOpt(int sockID, struct sockaddr_in sockInfo, char *opt, int value)
 		*(buffer+sz+1) = *(vchar+i);
 	}
 	
-	for(i=0; i < ++sz; i++)
-	{
-		printf("%c", buffer[i]);
-	}
 	return(++sz);
 }
 
@@ -303,10 +299,8 @@ int sendACK(int sockID, struct sockaddr_in sockInfo, unsigned short int ack)
 
 int sendInfo(int sockID, struct sockaddr_in sockInfo, char *buffer, int sz)
 {
-	int ssz = 0;
-	ssz = sendto(sockID, (char *) buffer, sz, 0, (struct sockaddr *) &sockInfo, sizeof(struct sockaddr_in));
 	
-	return(ssz);
+	return(sendto(sockID, (char *) buffer, sz, 0, (struct sockaddr *) &sockInfo, sizeof(struct sockaddr_in)));
 }
 
 int	sendError(int sockID, struct sockaddr_in sockInfo, unsigned short int opcode, unsigned short int errcode, char *errtext)
@@ -331,6 +325,11 @@ void wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 	tftp_data_hdr data;
 	
 	rwq_deserialize(&rwq, buffer);
+	if(timeout_option(&rwq, params, sockID, sockInfo) == 0)
+	{
+		sendACK(sockID, sockInfo, 0);
+	}
+
 	if(mode_transfer(rwq.mode, "octet", sockID, sockInfo, params) == -1)
 	{
 		return;
@@ -351,22 +350,6 @@ void wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 		printf("C write\t  %s:  %s\n", inet_ntoa(sockInfo.sin_addr), rwq.filename);
 	}
 	
-	if(!strcmp(rwq.tout, "timeout"))
-	{
-		params->rexmt = atoi(rwq.toutv);
-		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
-
-
-		if(params->verbose)
-		{
-			printf("Timeout: %d s\n", params->rexmt);
-		}
-	}
-	else
-	{
-		sendACK(sockID, sockInfo, 0);
-	}
-	
 	do
 	{
 		sz = 0;
@@ -384,6 +367,11 @@ void wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 		}while(t_out == 0 && intents);
 	}while(sz == RFC1350_BLOCKSIZE && t_out != -1);
 
+	if(intents == 0)
+	{
+		printf("Transfer timed out\n");
+	}
+
 	fclose(pFile);
 }
 
@@ -400,6 +388,8 @@ void rwqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 	bzero(&rwq, sizeof(tftp_rwq_hdr));
 
 	rwq_deserialize(&rwq, buffer);
+	timeout_option(&rwq, params, sockID, sockInfo);
+
 	if(mode_transfer(rwq.mode, "octet", sockID, sockInfo, params) == -1)
 	{
 		return;
@@ -414,12 +404,6 @@ void rwqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 	int t_out = 0;
 	int intents = 5;
 	
-	if(!strcmp(rwq.tout, "timeout"))
-	{
-		params->rexmt = atoi(rwq.toutv);
-		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
-	}
-
 	do
 	{
 		bzero(buffer, MAX_BUFFER);
@@ -447,10 +431,34 @@ void rwqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 		}while(t_out == 0 && intents);
 	}while((sz - SHORT_SIZE * 2) == RFC1350_BLOCKSIZE && t_out != -1);
 
+	if(intents == 0)
+	{
+		printf("Transfer timed out\n");
+	}
+
 	fclose(pFile);
 }
 
 //================
+
+int timeout_option(tftp_rwq_hdr *rwq, struct PARAMS *params, int sockID, struct sockaddr_in sockInfo)
+{
+	int ok = 0;
+
+	if(!strcmp(rwq->tout, "timeout") && atoi(rwq->toutv) > 0 && atoi(rwq->toutv) < 256)
+	{
+		ok = 1;
+		params->rexmt = atoi(rwq->toutv);
+		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
+
+		if(params->verbose)
+		{
+			printf("New timeout value: %d s\n", params->rexmt);
+		}
+	}
+
+	return(ok);
+}
 
 int select_func(int sockID, int time)
 {
@@ -492,7 +500,7 @@ FILE *open_file(char *fName, char *mode, int sockID, struct sockaddr_in sockInfo
 	{
 		if(params->verbose)
 		{
-			printf("Error al abrir el archivo: %s\n", fName);
+			printf("Error opening file: %s\n", fName);
 		}
 
 		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_FNOTFOUND, "\0");

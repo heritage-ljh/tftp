@@ -11,13 +11,13 @@ int socketBind()
 
 	if( (s_id = create_socket(PF_INET, SOCK_DGRAM, 0)) == -1)
 	{
-		printf("Error al crear el socket\n");
+		printf("Error creating socket\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if(make_bind(s_id, AF_INET, 0, NULL) == -1)
 	{
-		printf("Error al hacer el bind\n");
+		printf("Error making bind\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -51,13 +51,13 @@ int main(int argc, char *argv[])
 
 	if( (s_id = create_socket(PF_INET, SOCK_DGRAM, 0)) == -1)
 	{
-		printf("Error al crear el socket\n");
+		printf("Error creating socket\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if(make_bind(s_id, AF_INET, params.port, NULL) == -1)
 	{
-		printf("Error al hacer el bind\n");
+		printf("Error making bind\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 
 		if(params.verbose)
 		{
-			printf("Esperando por nueva connexion\n");
+			printf("Waiting for new connection\n");
 		}
 
 		bzero(buffer, MAX_BUFFER);
