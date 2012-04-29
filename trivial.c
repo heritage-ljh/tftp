@@ -53,17 +53,22 @@ int main(int argc, char *argv[])
 	switch(params.read_write)
 	{
 		case RFC1350_OP_RRQ:
-			rwqAction(c_id, sockInfo, buffer, &params);
-			break;
+		{
+			//rwqAction(c_id, sockInfo, buffer, &params);
+		}break;
+
 		case RFC1350_OP_WRQ:
-			wrqAction(c_id, sockInfo, buffer, &params);
-			break;
+		{
+			//wrqAction(c_id, sockInfo, buffer, &params);
+		}break;
+
 		default:
+		{
 			if(sendError(c_id, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_ILEGALOP, "Illegal TFTP operation") == -1)
 			{
 				printf("Error default case\n");
 			}
-			break;			
+		}break;			
 	}
 
 //	ack_deserialize(&ack, buffer);

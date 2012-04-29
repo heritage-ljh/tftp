@@ -1,6 +1,6 @@
 #include "common.h"
 
-int	create_socket(int domain, int type, int protocol)
+int create_socket(int domain, int type, int protocol)
 {
 	int sID = -1;
 	sID = socket(domain, type, protocol);
@@ -72,12 +72,12 @@ void param_parser(int argc, char *argv[], struct PARAMS *params)
 		{
 			if(!strcmp("-r", argv[i]))
 			{
-				params->read_write = CMD_READ;
+				params->read_write = RFC1350_OP_RRQ;
 			}
 
 			if(!strcmp("-w", argv[i]))
 			{
-				params->read_write = CMD_WRITE;
+				params->read_write = RFC1350_OP_WRQ;
 			}
 
 			if(!strcmp("-f", argv[i]))
@@ -317,168 +317,6 @@ int	sendError(int sockID, struct sockaddr_in sockInfo, unsigned short int opcode
 			
 	int sz = error_serialize(&error, buffer);
 	return(sendInfo(sockID, sockInfo, buffer, sz));
-}
-
-void wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PARAMS *params)
-{
-	tftp_rwq_hdr rwq;
-	tftp_data_hdr data;
-	
-	rwq_deserialize(&rwq, buffer);
-	if(mode_transfer(rwq.mode, "octet", params) == -1)
-	{
-		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_NOTDEF, "Set transfer mode to octet");
-		return;
-	}
-
-	if(file_exists(rwq.filename) == 1)
-	{
-		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_FEXISTS, "File exists");
-		return;
-	}
-
-
-
-	FILE *pFile = NULL;
-	if((pFile = open_file(rwq.filename, "wb", params)) == NULL)
-	{
-		switch(errno)
-		{
-			case EACCES:
-			{
-				sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_ACCESS, "Permission denied");
-			}break;
-
-			case ENOMEM:
-			{
-				sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_DISKFULL, "Not enough space");
-			}break;
-
-			default:
-			{
-				sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_NOTDEF, strerror(errno));
-			}break;
-		}
-		return;
-	}
-
-	if(timeout_option(&rwq, params) == -1)
-	{
-		sendACK(sockID, sockInfo, 0);
-	}
-	else
-	{
-		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
-	}
-
-	int sz = 0;
-	int t_out = 0;
-	int intents = 5;
-
-	if(params->verbose)
-	{
-		printf("C write\t  %s:  %s\n", inet_ntoa(sockInfo.sin_addr), rwq.filename);
-	}
-	
-	do
-	{
-		sz = 0;
-		intents = 5;
-
-		do
-		{
-			intents--;
-			if((t_out = select_func(sockID, params->rexmt)) == 1)
-			{
-				sz = get_data(&data, sockID, sockInfo, params);
-				sendACK(sockID, sockInfo, data.num_block);
-				fwrite(data.data, sz, 1, pFile);
-			}
-		}while(t_out == 0 && intents);
-	}while(sz == RFC1350_BLOCKSIZE && t_out != -1);
-
-	if(intents == 0)
-	{
-		printf("Transfer timed out\n");
-	}
-
-	fclose(pFile);
-}
-
-void rwqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PARAMS *params)
-{
-	unsigned short int bnum = 1;
-	unsigned short int sz  = 0;
-
-	tftp_rwq_hdr rwq;
-	tftp_data_hdr data;
-	tftp_ack_hdr ack;
-	
-	bzero(&data, sizeof(tftp_data_hdr));
-	bzero(&rwq, sizeof(tftp_rwq_hdr));
-
-	rwq_deserialize(&rwq, buffer);
-
-	if(mode_transfer(rwq.mode, "octet", params) == -1)
-	{
-		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_NOTDEF, "Set transfer mode to octet");
-		return;
-	}
-
-	if(file_exists(rwq.filename) == 1)
-	{
-		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_FEXISTS, "\0");
-		return;
-	}
-
-	if(timeout_option(&rwq, params) == 1)
-	{
-		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
-	}
-
-	FILE *pFile = NULL;
-	if((pFile = open_file(rwq.filename, "rb", params)) == NULL)
-	{
-		sendError(sockID, sockInfo, RFC1350_OP_ERROR, RFC1350_ERR_FNOTFOUND, "\0");
-		return;
-	}
-
-	int t_out = 0;
-	int intents = 5;
-	
-	do
-	{
-		bzero(buffer, MAX_BUFFER);
-		bzero(&data, sizeof(tftp_data_hdr));
-
-		data.opcode = RFC1350_OP_DATA;
-		data.num_block = bnum++;
-
-		sz = fread(data.data, 1, RFC1350_BLOCKSIZE, pFile);
-		sz = data_serialize(&data, buffer, sz);		
-	
-		bzero(&ack, sizeof(tftp_ack_hdr));
-		intents = 5;
-		
-		do
-		{
-			sendInfo(sockID, sockInfo, buffer, sz);
-			intents--;
-			
-			if((t_out = select_func(sockID, params->rexmt)) == 1)
-			{
-				get_ack(&ack, sockID, sockInfo, params);
-				ack_serialize(&ack, buffer);
-			}
-		}while(t_out == 0 && intents);
-	}while((sz - SHORT_SIZE * 2) == RFC1350_BLOCKSIZE && t_out != -1);
-
-	if(intents == 0)
-	{
-		printf("Transfer timed out\n");
-	}
-
-	fclose(pFile);
 }
 
 //================

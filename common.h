@@ -8,9 +8,9 @@
 	#include <errno.h>
 
  	#include <sys/types.h>
-    	#include <sys/time.h>
-    	#include <sys/resource.h>
-    	#include <sys/wait.h>
+    #include <sys/time.h>
+    #include <sys/resource.h>
+    #include <sys/wait.h>
 
 	#include <sys/socket.h>
 	#include <netinet/in.h>
@@ -30,9 +30,6 @@
 	#define MAX_BUFFER		1024
 
 	#define PARAMS_TEXT_SIZE	50
-	#define CMD_READ 		1
-	#define CMD_WRITE		2
-
 	#define	TRIVIALD		1
 	#define	TRIVIAL			2
 
@@ -77,9 +74,6 @@
 	int 	sendInfo(int sockID, struct sockaddr_in sockInfo, char *buffer, int sz);
 	int 	sendACK(int sockID, struct sockaddr_in sockInfo, unsigned short int ack);
 	int		sendError(int sockID, struct sockaddr_in sockInfo, unsigned short int opcode, unsigned short int errcode, char *errtext);
-
-	void 	wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PARAMS *params);
-	void 	rwqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PARAMS *params);
 
 	//====================
 
