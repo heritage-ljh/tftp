@@ -158,10 +158,12 @@ void wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 
 	if(timeout_option(&rwq, params) == -1)
 	{
+		printf("Ok!");
 		sendACK(sockID, sockInfo, 0);
 	}
 	else
 	{
+		printf("NOk!");
 		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
 	}
 
@@ -181,14 +183,13 @@ void wrqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 
 		do
 		{
-			intents--;
 			if((t_out = select_func(sockID, params->rexmt)) == 1)
 			{
 				sz = get_data(&data, sockID, sockInfo, params);
 				sendACK(sockID, sockInfo, data.num_block);
 				fwrite(data.data, sz, 1, pFile);
 			}
-		}while(t_out == 0 && intents);
+		}while(t_out == 0 && --intents);
 	}while(sz == RFC1350_BLOCKSIZE && t_out != -1);
 
 	if(intents == 0)
@@ -247,6 +248,7 @@ void rwqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 	{
 		sendACKOpt(sockID, sockInfo, "timeout", params->rexmt);
 	}
+
 	int t_out = 0;
 	int intents = 5;
 	
@@ -266,15 +268,13 @@ void rwqAction(int sockID, struct sockaddr_in sockInfo, char *buffer, struct PAR
 		
 		do
 		{
-			sendInfo(sockID, sockInfo, buffer, sz);
-			intents--;
-			
+			sendInfo(sockID, sockInfo, buffer, sz);			
 			if((t_out = select_func(sockID, params->rexmt)) == 1)
 			{
 				get_ack(&ack, sockID, sockInfo, params);
 				ack_serialize(&ack, buffer);
 			}
-		}while(t_out == 0 && intents);
+		}while(t_out == 0 && --intents);
 	}while((sz - SHORT_SIZE * 2) == RFC1350_BLOCKSIZE && t_out != -1);
 
 	if(intents == 0)

@@ -154,11 +154,11 @@ int ack_serialize(tftp_ack_hdr *ack, char *buffer)
 	int sz = 0;
 	bzero(buffer, MAX_BUFFER);
 
-	stshort(ack->opcode, buffer);
-	sz += sizeof(unsigned short int);
+	stshort(ack->opcode, buffer + sz);
+	sz += SHORT_SIZE;
 
-	stshort(ack->num_block, buffer+sz);
-	sz += sizeof(unsigned short int);
+	stshort(ack->num_block, buffer + sz);
+	sz += SHORT_SIZE;
 
 	return(sz);
 }
@@ -169,9 +169,10 @@ void ack_deserialize(tftp_ack_hdr *ack, char *buffer)
 	bzero(ack, sizeof(tftp_ack_hdr));
 
 	ack->opcode = ldshort(buffer + sz);
-	sz += sizeof(unsigned short int);
+	sz += SHORT_SIZE;
 	
 	ack->num_block = ldshort(buffer + sz);
+	sz += SHORT_SIZE;
 }
 
 int data_serialize(tftp_data_hdr *data, char *buffer, int dsz)
@@ -299,7 +300,6 @@ int sendACK(int sockID, struct sockaddr_in sockInfo, unsigned short int ack)
 
 int sendInfo(int sockID, struct sockaddr_in sockInfo, char *buffer, int sz)
 {
-	
 	return(sendto(sockID, (char *) buffer, sz, 0, (struct sockaddr *) &sockInfo, sizeof(struct sockaddr_in)));
 }
 

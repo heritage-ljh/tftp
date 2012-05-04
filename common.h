@@ -26,19 +26,19 @@
 	#define ldshort(addr) 		(ntohs (*((unsigned short int *)(addr))))
 
 
-	#define SHORT_SIZE		sizeof(unsigned short int)
-	#define MAX_BUFFER		1024
+	#define SHORT_SIZE			sizeof(unsigned short int)
+	#define MAX_BUFFER			1024
 
 	#define PARAMS_TEXT_SIZE	50
-	#define	TRIVIALD		1
-	#define	TRIVIAL			2
+	#define	TRIVIALD			1
+	#define	TRIVIAL				2
 
 	struct PARAMS
 	{
-		int	sc;
-		int	port;
-		int	verbose;
-		int	rexmt;
+		int		sc;
+		int		port;
+		int		verbose;
+		int		rexmt;
 		int 	read_write;
 		char	host[PARAMS_TEXT_SIZE];
 		char	file[PARAMS_TEXT_SIZE];
